@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting Library｜津田眼科医院</title>
+<style>
+  :root {
+    --bg: #FBF8F1;
+    --surface: #FFFFFF;
+    --side: #F4EEE1;
+    --ink: #2B2A26;
+    --sub: #6F6A5E;
+    --line: #E4DCCB;
+    --accent: #2F6B5E;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E3EFEA;
+    --warn-bg: #FFF4E0;
+    --warn-line: #E9C277;
+    --err-bg: #FDECEA;
+    --err-line: #E0958C;
+    --err-ink: #8A2A20;
+    --mark: #FFE9A8;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 18px; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
+    line-height: 1.75;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .app { display: flex; min-height: 100vh; }
+
+  /* サイドバー */
+  .side {
+    width: 250px; flex: none; background: var(--side); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; padding: 24px 16px 14px; position: sticky; top: 0; height: 100vh;
+  }
+  .brand { padding: 0 8px 22px; }
+  .brand b { display: block; font-size: 1.25rem; letter-spacing: .02em; }
+  .brand span { color: var(--sub); font-size: .85rem; }
+  .nav { display: flex; flex-direction: column; gap: 6px; }
+  .nav button {
+    text-align: left; border: 0; background: transparent; padding: 13px 14px; border-radius: 10px;
+    cursor: pointer; font-size: 1.05rem;
+  }
+  .nav button:hover { background: #ECE4D2; }
+  .nav button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .ver { margin-top: auto; color: var(--sub); font-size: .72rem; padding: 0 8px; }
+
+  /* メイン */
+  main { flex: 1; min-width: 0; padding: 32px 40px 80px; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin: 0 0 18px; }
+  h2 { font-size: 1.15rem; margin: 0 0 10px; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--sub); }
+  .small { font-size: .88rem; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; margin-bottom: 18px; }
+
+  /* 部品 */
+  .btn {
+    border: 1px solid var(--line); background: var(--surface); padding: 11px 20px; border-radius: 10px;
+    cursor: pointer; font-size: 1rem;
+  }
+  .btn:hover { background: #F6F1E5; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .btn.primary:hover { background: #275B50; }
+  .btn.big { padding: 15px 30px; font-size: 1.1rem; }
+  .btn.danger { color: var(--err-ink); border-color: var(--err-line); }
+  .btn.ghost { border-color: transparent; background: transparent; }
+  .btn.mini { padding: 5px 12px; font-size: .88rem; }
+  .btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .nav button:focus-visible {
+    outline: 3px solid #9CC7BB; outline-offset: 1px;
+  }
+  input[type=text], input[type=search], input[type=date], input[type=password], select, textarea {
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; background: #fff; width: 100%;
+  }
+  textarea { resize: vertical; line-height: 1.7; }
+  label.f { display: block; margin-bottom: 14px; }
+  label.f > span { display: block; font-size: .88rem; color: var(--sub); margin-bottom: 4px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .row.end { justify-content: flex-end; }
+  .grow { flex: 1; min-width: 0; }
+
+  .badge { display: inline-block; padding: 1px 11px; border-radius: 99px; font-size: .8rem; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  .badge.draft { background: var(--warn-bg); color: #8A5A00; border: 1px solid var(--warn-line); }
+  .chip { display: inline-block; padding: 1px 10px; margin: 0 6px 4px 0; border-radius: 8px; background: #F2ECDD; font-size: .88rem; }
+
+  .msg { border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; }
+  .msg.err { background: var(--err-bg); border: 1px solid var(--err-line); color: var(--err-ink); }
+  .msg.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); }
+  .msg.info { background: var(--accent-soft); border: 1px solid #BFD9D0; }
+
+  /* 一覧 */
+  .filters { display: grid; grid-template-columns: 1fr 210px; gap: 12px; margin-bottom: 10px; }
+  .filters2 { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .filters2 input[type=date] { width: 185px; }
+  #q { font-size: 1.1rem; padding: 13px 16px; }
+  .item {
+    display: block; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 16px 20px; margin-bottom: 10px; cursor: pointer;
+  }
+  .item:hover { border-color: var(--accent); }
+  .item .top { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .item .date { color: var(--sub); font-size: .9rem; white-space: nowrap; }
+  .item .ttl { font-weight: 600; font-size: 1.1rem; flex: 1; min-width: 200px; }
+  .item .att { color: var(--sub); font-size: .88rem; margin-top: 2px; }
+  .item .snip { font-size: .88rem; margin-top: 6px; color: #4B473D; }
+  mark { background: var(--mark); padding: 0 2px; border-radius: 3px; }
+  .empty { text-align: center; padding: 50px 20px; color: var(--sub); }
+
+  /* 取り込み */
+  .drop {
+    border: 2px dashed #CFC4AB; border-radius: 16px; padding: 34px 20px; text-align: center; background: #FFFDF8;
+    margin-bottom: 16px; cursor: pointer;
+  }
+  .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop b { font-size: 1.15rem; display: block; }
+
+  /* 詳細 */
+  .head-edit input.title { font-size: 1.5rem; font-weight: 700; border-color: transparent; background: transparent; padding: 4px 8px; margin-left: -8px; }
+  .head-edit input.title:hover, .head-edit input.title:focus { border-color: var(--line); background: #fff; }
+  .meta { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 6px 0 18px; }
+  .meta input[type=date] { width: 185px; }
+  .body-text { white-space: pre-wrap; word-break: break-word; }
+  .act { display: grid; grid-template-columns: 30px 1fr 150px 175px; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid #F0EADC; }
+  .act:first-of-type { border-top: 0; }
+  .act input[type=checkbox] { width: 24px; height: 24px; accent-color: var(--accent); cursor: pointer; }
+  .act.done .txt { color: var(--sub); text-decoration: line-through; }
+  .act-row { display: grid; grid-template-columns: 1fr 150px 175px 44px; gap: 10px; align-items: start; margin-bottom: 10px; }
+  .act-head { display: grid; grid-template-columns: 30px 1fr 150px 175px; gap: 10px; font-size: .8rem; color: var(--sub); }
+  .act-row-head { display: grid; grid-template-columns: 1fr 150px 175px 44px; gap: 10px; font-size: .8rem; color: var(--sub); margin-bottom: 4px; }
+  details.raw summary { cursor: pointer; font-weight: 600; }
+  details.raw pre {
+    white-space: pre-wrap; word-break: break-word; font: inherit; font-size: .88rem; background: #FAF7EF;
+    border: 1px solid var(--line); border-radius: 10px; padding: 14px; max-height: 480px; overflow: auto; margin: 12px 0 0;
+  }
+
+  /* 処理中・トースト */
+  #busy { position: fixed; inset: 0; background: rgba(43,42,38,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  #busy[hidden], #toast[hidden] { display: none; }
+  #busy .box { background: #fff; border-radius: 16px; padding: 30px 40px; text-align: center; max-width: 440px; }
+  .spin { width: 42px; height: 42px; border: 5px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; margin: 0 auto 14px; animation: sp 1s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+  #toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 12px 24px; border-radius: 99px; z-index: 60; }
+
+  @media (max-width: 860px) {
+    .app { flex-direction: column; }
+    .side { width: auto; height: auto; position: static; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px; gap: 8px; }
+    .brand { padding: 0 8px; }
+    .nav { flex-direction: row; flex-wrap: wrap; }
+    .ver { margin: 0 0 0 auto; }
+    main { padding: 20px 16px 60px; }
+    .filters { grid-template-columns: 1fr; }
+    .act, .act-head { grid-template-columns: 30px 1fr; }
+    .act .owner, .act .due, .act-head .h3, .act-head .h4 { grid-column: 2; }
+    .act-row, .act-row-head { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><b>Meeting Library</b><span>津田眼科医院</span></div>
+    <nav class="nav" id="nav">
+      <button data-nav="library">ライブラリ</button>
+      <button data-nav="import">取り込み</button>
+      <button data-nav="inbox">受信箱</button>
+      <button data-nav="settings">設定</button>
+    </nav>
+    <div class="ver" id="ver"></div>
+  </aside>
+  <main><div class="wrap" id="main"></div></main>
+</div>
+<div id="busy" hidden><div class="box"><div class="spin"></div><div id="busyText"></div></div></div>
+<div id="toast" hidden></div>
+
+<script>
+'use strict';
+
+/* ============ 定数 ============ */
+const APP_VERSION = 'v0.1.0（ステップ1）';
+const DEFAULT_MODEL = 'claude-sonnet-5-5';
+const MAX_TOKENS = 10000;            // 4,000 だと長い会議で JSON が途中で切れる
+const MAX_CHARS = 150000;            // 1 回に要約できる文字数の上限
+const LS_KEY = 'ml_api_key';
+const LS_MODEL = 'ml_model';
+const DATA_VERSION = 1;
+const DEFAULT_CATEGORIES = [
+  { id: 'internal', name: '院内ミーティング', sections: ['key_points'] },
+  { id: 'external', name: '外部打ち合わせ', sections: ['key_points'] }
+];
+const SECTION_LABELS = { key_points: '要点・決定事項' };
+
+/* ============ 状態 ============ */
+let meetings = [];
+let categories = [];
+let view = 'library';
+let currentId = null;
+let editMode = false;
+let work = null;                     // 編集中のコピー
+const filter = { q: '', cat: '', from: '', to: '' };
+const imp = { text: '', fileName: '', fileDate: '', error: '' };
+
+/* ============ 小道具 ============ */
+class AppError extends Error {}
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function uuid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'm-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+function ymd(d) {
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function isYmd(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s + 'T00:00:00').getTime()); }
+function jpDate(s) {
+  if (!isYmd(s)) return '日付なし';
+  const d = new Date(s + 'T00:00:00');
+  return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日（' + '日月火水木金土'[d.getDay()] + '）';
+}
+function catName(id) { const c = categories.find(c => c.id === id); return c ? c.name : '未分類'; }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+}
+function busy(msg) { $('#busyText').textContent = msg || ''; $('#busy').hidden = !msg; }
+
+/* ============ IndexedDB ============ */
+let dbPromise = null;
+function openDb() {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open('meeting-library', 1);
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      if (!d.objectStoreNames.contains('meetings')) d.createObjectStore('meetings', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return dbPromise;
+}
+async function dbOp(store, mode, fn) {
+  const d = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(store, mode);
+    const rq = fn(tx.objectStore(store));
+    tx.oncomplete = () => resolve(rq ? rq.result : undefined);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+const kvGet = key => dbOp('kv', 'readonly', s => s.get(key));
+const kvSet = (key, val) => dbOp('kv', 'readwrite', s => s.put(val, key));
+
+async function saveMeeting(m) {
+  await dbOp('meetings', 'readwrite', s => s.put(m));
+  const i = meetings.findIndex(x => x.id === m.id);
+  if (i >= 0) meetings[i] = m; else meetings.push(m);
+  afterChange();
+}
+async function deleteMeeting(id) {
+  await dbOp('meetings', 'readwrite', s => s.delete(id));
+  meetings = meetings.filter(x => x.id !== id);
+  afterChange();
+}
+/* ステップ2で、ここから Drive フォルダへ meetings.json を書き出す */
+function afterChange() {}
+function exportData() { return { version: DATA_VERSION, categories, meetings }; }
+
+/* ============ テキスト前処理 ============ */
+function cleanText(s) {
+  return String(s || '')
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');   // 制御文字を除去（Zoom の VTT に混ざることがある）
+}
+async function readTextFile(file) {
+  const buf = await file.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) {
+    try { return new TextDecoder('shift_jis').decode(buf); }           // Windows のメモ帳などで保存した古い形式
+    catch (e2) { return new TextDecoder('utf-8').decode(buf); }
+  }
+}
+function looksLikeVtt(text, fileName) {
+  return /\.vtt$/i.test(fileName || '') || /^WEBVTT/.test(text.trimStart());
+}
+/* VTT から時刻などを取り除き、「話者: 発言」の形に詰める（AI に渡す用。保管する原文はそのまま） */
+function parseVtt(text) {
+  const speakers = [], out = [];
+  let last = null, skip = false;
+  for (const line of text.split('\n')) {
+    const s = line.trim();
+    if (!s) { skip = false; continue; }
+    if (skip) continue;
+    if (/^WEBVTT/.test(s)) continue;
+    if (/^(NOTE|STYLE|REGION)\b/.test(s)) { skip = true; continue; }
+    if (s.includes('-->')) continue;
+    if (/^\d+$/.test(s)) continue;
+    let sp = null, body = s;
+    let m = s.match(/^<v(?:\.[^\s>]*)?\s+([^>]+)>(.*)$/);
+    if (m) { sp = m[1].trim(); body = m[2]; }
+    else {
+      m = s.match(/^([^:：<>]{1,30})[:：]\s*(.+)$/);
+      if (m && !/^\d+$/.test(m[1].trim())) { sp = m[1].trim(); body = m[2]; }
+    }
+    body = body.replace(/<[^>]+>/g, '').trim();
+    if (!body) continue;
+    if (sp) {
+      if (!speakers.includes(sp)) speakers.push(sp);
+      if (sp === last) out[out.length - 1] += ' ' + body;
+      else { out.push(sp + ': ' + body); last = sp; }
+    } else { out.push(body); last = null; }
+  }
+  return { speakers, compact: out.join('\n') };
+}
+
+/* ============ Claude API ============ */
+function explainStatus(status, detail) {
+  const d = detail ? '（詳細: ' + detail.slice(0, 160) + '）' : '';
+  if (status === 401) return 'API キーが正しくないようです。「設定」を開き、API キーを貼り直して「保存」を押してください。' + d;
+  if (status === 403) return 'この API キーでは利用が許可されていません。「設定」で API キーを確認するか、キーの提供元に連絡してください。' + d;
+  if (status === 404) return 'AI のモデル名が見つかりません。「設定 → くわしい設定」のモデル名を空にして保存し直してください。' + d;
+  if (status === 413) return '文字起こしが長すぎます。会議を前半・後半に分けて、2 回に分けて取り込んでください。';
+  if (status === 429) return 'AI の利用が混み合っています。1 分ほど待ってから、もう一度ボタンを押してください。' + d;
+  if (status === 400 && /credit|billing|balance/i.test(detail)) return 'API の利用残高が足りないようです。API キーの提供元に残高の確認を依頼してください。' + d;
+  if (status === 400 && /too long|too large|maximum/i.test(detail)) return '文字起こしが長すぎます。会議を前半・後半に分けて、2 回に分けて取り込んでください。';
+  if (status >= 500) return 'AI 側が一時的に混雑しています。数分待ってから、もう一度ボタンを押してください。' + d;
+  return 'AI からエラーが返りました。もう一度お試しください。直らない場合は、この画面の写真を撮って担当者に見せてください。（番号: ' + status + '）' + d;
+}
+async function callClaude(system, messages, maxTokens) {
+  const key = (localStorage.getItem(LS_KEY) || '').trim();
+  if (!key) throw new AppError('API キーがまだ設定されていません。左の「設定」を開き、API キーを貼り付けて「保存」を押してください。');
+  if (!/^[\x21-\x7E]+$/.test(key)) throw new AppError('API キーに余計な文字（空白や日本語）が混ざっています。「設定」で API キーを貼り直してください。');
+  const model = (localStorage.getItem(LS_MODEL) || '').trim() || DEFAULT_MODEL;
+  let res;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model, max_tokens: maxTokens || MAX_TOKENS, system, messages })
+    });
+  } catch (e) {
+    throw new AppError('AI に接続できませんでした。インターネットにつながっているか確認して、もう一度ボタンを押してください。');
+  }
+  if (!res.ok) {
+    let detail = '';
+    try { const j = await res.json(); detail = (j.error && j.error.message) || ''; } catch (e) {}
+    throw new AppError(explainStatus(res.status, detail));
+  }
+  const data = await res.json();
+  const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  return { text, stop: data.stop_reason };
+}
+/* コードフェンス除去 + 前置き付き JSON からの救出 */
+function extractJson(text) {
+  const t = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  try { return JSON.parse(t); } catch (e) {}
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch (e) {} }
+  return null;
+}
+
+function buildSystemPrompt() {
+  return [
+    'あなたは津田眼科医院のミーティング記録係です。渡された会議の文字起こしを読み、指定の JSON 形式で記録を作ります。',
+    '',
+    '【あなたの仕事について】',
+    'あなたの仕事は会議で話されたことの記録です。医療・法律・金融などの専門的な話題が含まれていても、それは参加者の発言の記録であり、あなたが助言・診断・推奨を行うわけではありません。発言内容を事実として要約し、拒否せず必ず JSON を返してください。',
+    '',
+    '【人名の表記ルール（最重要）】',
+    '・院長は必ず「院長」と表記する。「守屋先生」「守屋院長」「先生」など院長を指す呼び方はすべて「院長」に統一する。',
+    '・院長以外は、スタッフも外部の人も全員「〇〇さん」（姓または呼び名＋さん）と表記する。',
+    '・敬称なしの呼び捨て、「様」「先生」「氏」「くん」「ちゃん」は使わない。',
+    '・このルールは title、attendees、要約、アクションの owner のすべてに適用する。',
+    '',
+    '【患者情報の扱い】',
+    '・患者の氏名が出てきた場合は、氏名を書かずに「患者さん」と置き換える。複数人いる場合は「患者さんA」「患者さんB」のように区別する。',
+    '',
+    '【カテゴリの判定】',
+    '・渡されたカテゴリ一覧の中から、内容に最も合うものを 1 つ選び、その id を category_id に入れる。',
+    '・院内のスタッフだけで話している会議は院内ミーティング、外部の人（業者・コンサルタント・他院など）が参加している会議は外部打ち合わせ。',
+    '',
+    '【出席者】',
+    '・話者ラベルが渡された場合はそれを優先して出席者とする。なければ発言内容から判断する。',
+    '・「話者1」のように名前が分からない話者は、会話の中の呼びかけから誰か分かる場合だけ名前にし、分からなければ出席者に入れない。',
+    '・人名の表記ルールに従って書き直す。',
+    '',
+    '【要約の書き方】',
+    '・summary.key_points に、要点と決定事項を「・」で始まる箇条書きで書く。1 項目 1 行、改行で区切る。',
+    '・決まったことは行の先頭を「・【決定】」で始める。',
+    '・会議で話されていないことは書かない。推測で補わない。',
+    '・「誰が・いつまでに・何をする」は open_actions に書き、key_points には重ねて書かない。',
+    '',
+    '【アクション】',
+    '・open_actions に、会議で出た「やること」を 1 件ずつ入れる。なければ空の配列。',
+    '・owner は担当者（人名の表記ルールに従う）。分からなければ空文字。',
+    '・due は期日を YYYY-MM-DD で書く。「来週の金曜」などは会議日を基準に計算する。分からなければ空文字。',
+    '',
+    '【タイトルと日付】',
+    '・title は内容が一目で分かる短い題名（30 文字以内、日付は入れない）。',
+    '・meeting_date は会議が行われた日（YYYY-MM-DD）。本文やファイル名から分からなければ、渡された「参考の日付」を使う。',
+    '',
+    '【出力形式】',
+    '次の形の JSON だけを返す。前置き、説明、コードフェンスは付けない。',
+    '{"category_id":"…","title":"…","meeting_date":"YYYY-MM-DD","attendees":["院長","〇〇さん"],"summary":{"key_points":"・…\\n・…"},"open_actions":[{"text":"…","owner":"〇〇さん","due":"YYYY-MM-DD"}]}'
+  ].join('\n');
+}
+
+async function summarizeTranscript(raw, fileName, hintDate) {
+  let body = raw, speakers = [];
+  if (looksLikeVtt(raw, fileName)) {
+    const p = parseVtt(raw);
+    if (p.compact.trim()) { body = p.compact; speakers = p.speakers; }
+  }
+  if (body.length > MAX_CHARS) {
+    throw new AppError('文字起こしが長すぎます（' + body.length.toLocaleString() + ' 文字）。会議を前半・後半に分けて、2 回に分けて取り込んでください。');
+  }
+  const user = [
+    '【カテゴリ一覧】',
+    categories.map(c => '・id: ' + c.id + ' ／ 名前: ' + c.name).join('\n'),
+    '',
+    '【参考の日付】' + hintDate,
+    '【ファイル名】' + (fileName || '（貼り付けテキスト）'),
+    '【話者ラベル】' + (speakers.length ? speakers.join('、') : '（なし）'),
+    '',
+    '【文字起こし】',
+    body
+  ].join('\n');
+
+  const { text, stop } = await callClaude(buildSystemPrompt(), [{ role: 'user', content: user }], MAX_TOKENS);
+  const j = extractJson(text);
+  if (!j || typeof j !== 'object') {
+    if (stop === 'max_tokens') throw new AppError('会議が長く、要約が途中で切れてしまいました。会議を前半・後半に分けて、2 回に分けて取り込んでください。');
+    const head = text.trim().slice(0, 200) || '（返答が空でした）';
+    throw new AppError('AI から要約データが返ってきませんでした。もう一度「AI で要約する」を押してください。AI の返答:「' + head + '」');
+  }
+  return normalizeAiResult(j, hintDate);
+}
+function normalizeAiResult(j, hintDate) {
+  const str = v => (typeof v === 'string' ? v.trim() : '');
+  let kp = j.summary && j.summary.key_points;
+  if (Array.isArray(kp)) kp = kp.map(x => String(x)).join('\n');
+  const actions = Array.isArray(j.open_actions) ? j.open_actions : [];
+  return {
+    category_id: categories.some(c => c.id === j.category_id) ? j.category_id : categories[0].id,
+    title: str(j.title) || '（タイトル未設定）',
+    meeting_date: isYmd(j.meeting_date) ? j.meeting_date : hintDate,
+    attendees: (Array.isArray(j.attendees) ? j.attendees : []).map(str).filter(Boolean),
+    summary: { key_points: str(kp) },
+    open_actions: actions.map(a => ({
+      text: str(a && a.text), owner: str(a && a.owner), due: isYmd(a && a.due) ? a.due : '', done: false
+    })).filter(a => a.text)
+  };
+}
+
+/* ============ 画面切り替え ============ */
+function go(v, id) {
+  view = v; currentId = id || null;
+  if (v !== 'detail') { editMode = false; work = null; }
+  render();
+  window.scrollTo(0, 0);
+}
+function render() {
+  $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.nav === (view === 'detail' ? 'library' : view)));
+  if (view === 'library') renderLibrary();
+  else if (view === 'import') renderImport();
+  else if (view === 'inbox') renderInbox();
+  else if (view === 'settings') renderSettings();
+  else if (view === 'detail') renderDetail();
+}
+
+/* ============ ライブラリ ============ */
+function renderLibrary() {
+  const noKey = !(localStorage.getItem(LS_KEY) || '').trim();
+  $('#main').innerHTML = `
+    <div class="row" style="justify-content:space-between;margin-bottom:6px">
+      <h1 style="margin:0">ライブラリ</h1>
+      <button class="btn primary" data-action="nav-import">＋ ミーティングを取り込む</button>
+    </div>
+    ${noKey ? `<div class="msg warn" style="margin-top:14px">はじめに「設定」で API キーを登録してください。登録すると AI での要約が使えるようになります。
+      <button class="btn mini" data-action="nav-settings" style="margin-left:8px">設定を開く</button></div>` : ''}
+    <div class="filters" style="margin-top:16px">
+      <input type="search" id="q" placeholder="キーワードで検索（タイトル・要約・原文・出席者）" value="${esc(filter.q)}" aria-label="キーワード検索">
+      <select id="fcat" aria-label="カテゴリで絞り込み">
+        <option value="">すべてのカテゴリ</option>
+        ${categories.map(c => `<option value="${esc(c.id)}"${filter.cat === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="filters2">
+      <span class="muted small">期間</span>
+      <input type="date" id="ffrom" value="${esc(filter.from)}" aria-label="期間の開始日">
+      <span class="muted">〜</span>
+      <input type="date" id="fto" value="${esc(filter.to)}" aria-label="期間の終了日">
+      <button class="btn mini ghost" data-action="clear-filter">条件をクリア</button>
+      <span class="muted small" id="count" style="margin-left:auto"></span>
+    </div>
+    <div id="list"></div>`;
+  renderList();
+}
+function haystack(m) {
+  const sum = Object.values(m.summary || {}).join('\n');
+  const acts = (m.open_actions || []).map(a => a.text + ' ' + a.owner).join('\n');
+  return [m.title, (m.attendees || []).join(' '), sum, acts, m.transcript_raw || ''].join('\n').toLowerCase();
+}
+function snippet(m, term) {
+  const fields = [Object.values(m.summary || {}).join(' '), (m.open_actions || []).map(a => a.text).join(' '), m.transcript_raw || ''];
+  for (const f of fields) {
+    const i = f.toLowerCase().indexOf(term);
+    if (i < 0) continue;
+    const a = Math.max(0, i - 36), b = Math.min(f.length, i + term.length + 60);
+    return (a > 0 ? '…' : '') + esc(f.slice(a, i)).replace(/\n/g, ' ') + '<mark>' + esc(f.slice(i, i + term.length)) + '</mark>' +
+      esc(f.slice(i + term.length, b)).replace(/\n/g, ' ') + (b < f.length ? '…' : '');
+  }
+  return '';
+}
+function renderList() {
+  const terms = filter.q.toLowerCase().split(/[\s\u3000]+/).filter(Boolean);
+  let rows = meetings.filter(m => {
+    if (filter.cat && m.category_id !== filter.cat) return false;
+    if (filter.from && (m.meeting_date || '') < filter.from) return false;
+    if (filter.to && (m.meeting_date || '') > filter.to) return false;
+    if (terms.length) { const h = haystack(m); if (!terms.every(t => h.includes(t))) return false; }
+    return true;
+  });
+  rows.sort((a, b) => (b.meeting_date || '').localeCompare(a.meeting_date || '') || (b.created_at || '').localeCompare(a.created_at || ''));
+  $('#count').textContent = meetings.length ? rows.length + ' 件' : '';
+  const list = $('#list');
+  if (!meetings.length) {
+    list.innerHTML = `<div class="card empty">
+      <p style="font-size:1.1rem;color:var(--ink)">まだミーティングがありません</p>
+      <p>「＋ ミーティングを取り込む」から、文字起こしファイルを入れてみましょう。</p></div>`;
+    return;
+  }
+  if (!rows.length) { list.innerHTML = '<div class="card empty">条件に合うミーティングが見つかりませんでした。キーワードや期間を変えてみてください。</div>'; return; }
+  list.innerHTML = rows.map(m => {
+    const snip = terms.length ? snippet(m, terms[0]) : '';
+    return `<button class="item" data-action="open" data-id="${esc(m.id)}">
+      <div class="top">
+        <span class="date">${esc(jpDate(m.meeting_date))}</span>
+        <span class="ttl">${esc(m.title)}</span>
+        ${m.status === 'draft' ? '<span class="badge draft">下書き（未確定）</span>' : ''}
+        <span class="badge">${esc(catName(m.category_id))}</span>
+      </div>
+      ${(m.attendees || []).length ? `<div class="att">出席: ${esc(m.attendees.join('、'))}</div>` : ''}
+      ${snip ? `<div class="snip">${snip}</div>` : ''}
+    </button>`;
+  }).join('');
+}
+
+/* ============ 取り込み（入口 A） ============ */
+function renderImport() {
+  $('#main').innerHTML = `
+    <h1>取り込み</h1>
+    <p class="muted">文字起こしのファイルを入れるか、テキストを貼り付けて、「AI で要約する」を押してください。</p>
+    ${imp.error ? `<div class="msg err" role="alert">${esc(imp.error)}</div>` : ''}
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="ファイルを選ぶ">
+      <b>ここにファイルをドラッグ＆ドロップ</b>
+      <span class="muted">またはクリックしてファイルを選ぶ（.vtt / .txt）</span>
+      <input type="file" id="file" accept=".vtt,.txt,text/plain,text/vtt" hidden>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <h2 style="margin:0">文字起こしテキスト</h2>
+        <span class="muted small" id="fileInfo"></span>
+      </div>
+      <textarea id="impText" rows="12" placeholder="ここに文字起こしを貼り付けることもできます">${esc(imp.text)}</textarea>
+      <div class="row end" style="margin-top:14px">
+        <button class="btn" data-action="imp-clear">クリア</button>
+        <button class="btn primary big" data-action="imp-run">AI で要約する</button>
+      </div>
+    </div>
+    <p class="muted small">対応しているのは .vtt と .txt です。Word（.docx）には対応していません。PDF・写真の保管はステップ 4 で追加されます。</p>`;
+  updateFileInfo();
+  const drop = $('#drop'), file = $('#file');
+  drop.addEventListener('click', () => file.click());
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); } });
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadFile(f); });
+  file.addEventListener('change', () => { if (file.files[0]) loadFile(file.files[0]); });
+  $('#impText').addEventListener('input', e => { imp.text = e.target.value; updateFileInfo(); });
+}
+function updateFileInfo() {
+  const el = $('#fileInfo'); if (!el) return;
+  const n = imp.text.length;
+  el.textContent = (imp.fileName ? '読み込んだファイル: ' + imp.fileName + ' ／ ' : '') + (n ? n.toLocaleString() + ' 文字' : '');
+}
+async function loadFile(f) {
+  const name = f.name || '';
+  const ext = (name.match(/\.([^.]+)$/) || [, ''])[1].toLowerCase();
+  imp.error = '';
+  if (ext === 'docx' || ext === 'doc') {
+    imp.error = 'Word ファイル（.docx）には対応していません。Word で開いて文章をすべてコピーし、下の欄に貼り付けてください。';
+  } else if (ext === 'pdf' || /^image\//.test(f.type)) {
+    imp.error = 'PDF や写真の保管は、まだこの版では使えません（ステップ 4 で追加されます）。文字起こしの .vtt / .txt を入れてください。';
+  } else if (ext !== 'vtt' && ext !== 'txt') {
+    imp.error = 'このファイルの種類（.' + (ext || '不明') + '）には対応していません。.vtt か .txt のファイルを入れてください。';
+  } else {
+    try {
+      const text = cleanText(await readTextFile(f));
+      if (!text.trim()) imp.error = 'ファイルの中身が空でした。別のファイルを入れてください。';
+      else { imp.text = text; imp.fileName = name; imp.fileDate = f.lastModified ? ymd(new Date(f.lastModified)) : ''; }
+    } catch (e) {
+      imp.error = 'ファイルを読み込めませんでした。もう一度ドラッグ＆ドロップしてください。';
+    }
+  }
+  renderImport();
+}
+async function runImport() {
+  const raw = cleanText(imp.text).trim();
+  if (!raw) { imp.error = '文字起こしが入っていません。ファイルを入れるか、テキストを貼り付けてください。'; renderImport(); return; }
+  if (raw.length < 30) { imp.error = 'テキストが短すぎます。会議の文字起こし全体を入れてください。'; renderImport(); return; }
+  imp.error = '';
+  busy('AI が要約を作っています…（30 秒〜1 分ほどかかります）');
+  try {
+    const hint = imp.fileDate || ymd(new Date());
+    const r = await summarizeTranscript(raw, imp.fileName, hint);
+    const m = Object.assign({
+      id: uuid(),
+      source_type: 'transcript',
+      transcript_raw: raw,
+      source_file: imp.fileName ? '原文/' + imp.fileName : '',
+      status: 'draft',
+      created_at: new Date().toISOString(),
+      confirmed_at: null
+    }, r);
+    await saveMeeting(m);
+    imp.text = ''; imp.fileName = ''; imp.fileDate = '';
+    busy('');
+    editMode = true; work = clone(m);
+    go('detail', m.id);
+    toast('要約の下書きができました。内容を確認してください');
+  } catch (e) {
+    busy('');
+    imp.error = e instanceof AppError ? e.message : '思わぬエラーが起きました。もう一度「AI で要約する」を押してください。（' + (e && e.message || e) + '）';
+    renderImport();
+    window.scrollTo(0, 0);
+  }
+}
+
+/* ============ 詳細 ============ */
+function renderDetail() {
+  const m = meetings.find(x => x.id === currentId);
+  if (!m) { go('library'); return; }
+  if (m.status === 'draft') editMode = true;
+  if (editMode) { if (!work || work.id !== m.id) work = clone(m); renderEdit(m); }
+  else renderView(m);
+}
+function sectionsOf(m) {
+  const c = categories.find(c => c.id === m.category_id);
+  return (c && c.sections && c.sections.length) ? c.sections : ['key_points'];
+}
+function renderView(m) {
+  const acts = m.open_actions || [];
+  $('#main').innerHTML = `
+    <button class="btn ghost" data-action="nav-library" style="margin:0 0 8px -14px">← 一覧にもどる</button>
+    <div class="head-edit">
+      <input type="text" class="title" data-field="title" value="${esc(m.title)}" aria-label="タイトル（クリックで編集）" title="クリックで編集できます">
+      <div class="meta">
+        <input type="date" data-field="meeting_date" value="${esc(m.meeting_date)}" aria-label="日付">
+        <span class="badge">${esc(catName(m.category_id))}</span>
+        <span>${(m.attendees || []).map(a => `<span class="chip">${esc(a)}</span>`).join('') || '<span class="muted small">出席者なし</span>'}</span>
+      </div>
+    </div>
+    ${sectionsOf(m).map(s => `<div class="card"><h2>${esc(SECTION_LABELS[s] || s)}</h2>
+      <div class="body-text">${esc((m.summary || {})[s] || '') || '<span class="muted">（記載なし）</span>'}</div></div>`).join('')}
+    <div class="card">
+      <h2>アクション</h2>
+      ${acts.length ? `<div class="act-head"><span></span><span>内容</span><span class="h3">担当</span><span class="h4">期日</span></div>` +
+        acts.map((a, i) => `<div class="act${a.done ? ' done' : ''}">
+          <input type="checkbox" data-act="${i}" data-k="done" ${a.done ? 'checked' : ''} aria-label="完了にする">
+          <span class="txt">${esc(a.text)}</span>
+          <input type="text" class="owner" data-act="${i}" data-k="owner" value="${esc(a.owner)}" placeholder="担当" aria-label="担当">
+          <input type="date" class="due" data-act="${i}" data-k="due" value="${esc(a.due)}" aria-label="期日">
+        </div>`).join('') : '<p class="muted" style="margin:0">アクションはありません。</p>'}
+    </div>
+    <div class="card">
+      <details class="raw">
+        <summary>原文を表示する${m.transcript_raw ? '（' + m.transcript_raw.length.toLocaleString() + ' 文字）' : ''}</summary>
+        <pre>${esc(m.transcript_raw || '')}</pre>
+      </details>
+      ${m.source_file ? `<p class="muted small" style="margin:12px 0 0">元ファイル: ${esc(m.source_file)}（Drive フォルダへの保存はステップ 2 で追加されます）</p>` : ''}
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn danger" data-action="delete">このミーティングを削除</button>
+      <button class="btn" data-action="edit">要約・アクションを編集する</button>
+    </div>`;
+}
+function actRowHtml(a, i) {
+  return `<div class="act-row" data-row="${i}">
+    <textarea rows="2" data-k="text" placeholder="やること" aria-label="アクションの内容">${esc(a.text)}</textarea>
+    <input type="text" data-k="owner" value="${esc(a.owner)}" placeholder="担当" aria-label="担当">
+    <input type="date" data-k="due" value="${esc(a.due)}" aria-label="期日">
+    <button class="btn mini" data-action="act-del" data-i="${i}" aria-label="このアクションを消す" title="このアクションを消す">✕</button>
+  </div>`;
+}
+function renderEdit(m) {
+  const w = work, draft = m.status === 'draft';
+  $('#main').innerHTML = `
+    <button class="btn ghost" data-action="nav-library" style="margin:0 0 8px -14px">← 一覧にもどる</button>
+    <h1>${draft ? '要約の確認' : '要約の編集'}</h1>
+    ${draft ? '<div class="msg info">AI が作った下書きです。内容を確認し、必要なら直してから「確定して保存」を押してください。</div>' : ''}
+    <div id="editErr"></div>
+    <form id="editForm" onsubmit="return false">
+      <div class="card">
+        <label class="f"><span>タイトル</span><input type="text" id="eTitle" value="${esc(w.title)}"></label>
+        <div class="row" style="align-items:flex-start">
+          <label class="f" style="width:200px"><span>日付</span><input type="date" id="eDate" value="${esc(w.meeting_date)}"></label>
+          <label class="f" style="width:260px"><span>カテゴリ</span><select id="eCat">
+            ${categories.map(c => `<option value="${esc(c.id)}"${w.category_id === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}
+          </select></label>
+        </div>
+        <label class="f" style="margin:0"><span>出席者（「、」で区切る）</span><input type="text" id="eAtt" value="${esc((w.attendees || []).join('、'))}"></label>
+      </div>
+      ${sectionsOf(w).map(s => `<div class="card"><h2>${esc(SECTION_LABELS[s] || s)}</h2>
+        <textarea rows="12" data-sec="${esc(s)}" aria-label="${esc(SECTION_LABELS[s] || s)}">${esc((w.summary || {})[s] || '')}</textarea></div>`).join('')}
+      <div class="card">
+        <h2>アクション</h2>
+        ${(w.open_actions || []).length ? '<div class="act-row-head"><span>内容</span><span>担当</span><span>期日</span><span></span></div>' : ''}
+        <div id="actRows">${(w.open_actions || []).map(actRowHtml).join('')}</div>
+        <button class="btn" data-action="act-add">＋ アクションを追加</button>
+      </div>
+    </form>
+    <div class="card">
+      <details class="raw"><summary>原文を表示する</summary><pre>${esc(m.transcript_raw || '')}</pre></details>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn danger" data-action="delete">${draft ? '下書きを削除' : 'このミーティングを削除'}</button>
+      <div class="row">
+        ${draft ? '<span class="muted small">下書きは自動で保存されます</span>' : '<button class="btn" data-action="edit-cancel">変更をやめる</button>'}
+        <button class="btn primary big" data-action="confirm">${draft ? '確定して保存' : '保存する'}</button>
+      </div>
+    </div>`;
+}
+function collectForm() {
+  if (!work || !$('#editForm')) return;
+  work.title = $('#eTitle').value.trim();
+  work.meeting_date = $('#eDate').value;
+  work.category_id = $('#eCat').value;
+  work.attendees = $('#eAtt').value.split(/[、,，\n]/).map(s => s.trim()).filter(Boolean);
+  work.summary = work.summary || {};
+  $$('#editForm [data-sec]').forEach(t => { work.summary[t.dataset.sec] = t.value.trim(); });
+  work.open_actions = $$('#actRows .act-row').map(r => {
+    const old = (work.open_actions || [])[Number(r.dataset.row)] || {};
+    return { text: $('[data-k=text]', r).value.trim(), owner: $('[data-k=owner]', r).value.trim(), due: $('[data-k=due]', r).value, done: !!old.done };
+  });
+}
+async function autosaveDraft() {
+  const m = meetings.find(x => x.id === currentId);
+  if (!m || m.status !== 'draft' || !work) return;
+  collectForm();
+  try { await saveMeeting(clone(work)); } catch (e) { /* 確定時にあらためて知らせる */ }
+}
+async function confirmEdit() {
+  collectForm();
+  const errBox = $('#editErr');
+  const fail = msg => { errBox.innerHTML = `<div class="msg err" role="alert">${esc(msg)}</div>`; window.scrollTo(0, 0); };
+  if (!work.title) return fail('タイトルが空です。タイトルを入れてから、もう一度ボタンを押してください。');
+  if (!isYmd(work.meeting_date)) return fail('日付が入っていません。日付を選んでから、もう一度ボタンを押してください。');
+  work.open_actions = work.open_actions.filter(a => a.text);
+  const wasDraft = work.status === 'draft';
+  work.status = 'confirmed';
+  if (!work.confirmed_at) work.confirmed_at = new Date().toISOString();
+  try {
+    await saveMeeting(clone(work));
+  } catch (e) {
+    if (wasDraft) { work.status = 'draft'; work.confirmed_at = null; }
+    return fail('保存できませんでした。ブラウザの空き容量が足りない可能性があります。もう一度ボタンを押しても直らない場合は、この画面を閉じずに担当者に連絡してください。');
+  }
+  editMode = false; work = null;
+  render(); window.scrollTo(0, 0);
+  toast(wasDraft ? '確定して保存しました' : '保存しました');
+}
+
+/* ============ 受信箱（ステップ3） ============ */
+function renderInbox() {
+  $('#main').innerHTML = `
+    <h1>受信箱</h1>
+    <div class="card empty">
+      <p style="font-size:1.1rem;color:var(--ink)">受信箱はまだ使えません</p>
+      <p>Drive の「受信箱」フォルダに置いたファイルをワンクリックで取り込む機能は、ステップ 3 で追加されます。<br>
+      いまは「取り込み」画面からファイルを入れてください。</p>
+      <button class="btn primary" data-action="nav-import">取り込み画面へ</button>
+    </div>`;
+}
+
+/* ============ 設定 ============ */
+function renderSettings() {
+  const key = localStorage.getItem(LS_KEY) || '';
+  const model = localStorage.getItem(LS_MODEL) || '';
+  $('#main').innerHTML = `
+    <h1>設定</h1>
+    <div class="card">
+      <h2>API 設定</h2>
+      <p class="muted small">AI で要約するための鍵（API キー）です。この PC のブラウザの中だけに保存されます。キーを差し替えるときは、新しいキーを貼り直して「保存」を押すだけです。</p>
+      <div id="setMsg"></div>
+      <label class="f"><span>API キー（sk-ant- で始まる文字列）</span>
+        <input type="password" id="sKey" value="${esc(key)}" autocomplete="off" spellcheck="false" placeholder="sk-ant-..."></label>
+      <label class="small" style="display:inline-flex;gap:8px;align-items:center;margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="sShow" style="width:20px;height:20px"> キーを表示する</label>
+      <details style="margin-bottom:14px"><summary class="small muted" style="cursor:pointer">くわしい設定（通常はさわりません）</summary>
+        <label class="f" style="margin-top:10px"><span>モデル名（空欄なら ${esc(DEFAULT_MODEL)}）</span>
+          <input type="text" id="sModel" value="${esc(model)}" placeholder="${esc(DEFAULT_MODEL)}" spellcheck="false"></label>
+      </details>
+      <div class="row">
+        <button class="btn primary" data-action="set-save">保存</button>
+        <button class="btn" data-action="set-test">AI につながるか確認する</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Drive フォルダ</h2>
+      <p class="muted" style="margin:0">Google Drive のフォルダへの自動保存は、ステップ 2 で追加されます。それまでは、データはこの PC のこのブラウザの中だけに保存されます（ブラウザの「閲覧履歴データの削除」で消えることがあるのでご注意ください）。</p>
+    </div>
+    <div class="card">
+      <h2>カテゴリ</h2>
+      <p>${categories.map(c => `<span class="chip">${esc(c.name)}</span>`).join('')}</p>
+      <p class="muted small" style="margin:0">カテゴリの追加・名称変更は、ステップ 5 で追加されます。</p>
+    </div>
+    <p class="muted small">保存されているミーティング: ${meetings.length} 件 ／ ${esc(APP_VERSION)}</p>`;
+  $('#sShow').addEventListener('change', e => { $('#sKey').type = e.target.checked ? 'text' : 'password'; });
+}
+function saveSettings() {
+  const key = $('#sKey').value.trim(), model = $('#sModel').value.trim();
+  if (key) localStorage.setItem(LS_KEY, key); else localStorage.removeItem(LS_KEY);
+  if (model) localStorage.setItem(LS_MODEL, model); else localStorage.removeItem(LS_MODEL);
+}
+async function testConnection() {
+  saveSettings();
+  const box = $('#setMsg');
+  busy('AI につながるか確認しています…');
+  try {
+    await callClaude('接続確認です。', [{ role: 'user', content: '「OK」とだけ返してください。' }], 16);
+    busy('');
+    box.innerHTML = '<div class="msg info" role="status">AI につながりました。このまま使えます。</div>';
+  } catch (e) {
+    busy('');
+    const msg = e instanceof AppError ? e.message : '確認中にエラーが起きました。もう一度お試しください。';
+    box.innerHTML = `<div class="msg err" role="alert">${esc(msg)}</div>`;
+  }
+}
+
+/* ============ イベント ============ */
+document.addEventListener('click', async e => {
+  const navBtn = e.target.closest('[data-nav]');
+  if (navBtn) { go(navBtn.dataset.nav); return; }
+  const el = e.target.closest('[data-action]');
+  if (!el) return;
+  const a = el.dataset.action;
+  if (a === 'nav-import') go('import');
+  else if (a === 'nav-settings') go('settings');
+  else if (a === 'nav-library') go('library');
+  else if (a === 'open') go('detail', el.dataset.id);
+  else if (a === 'clear-filter') { filter.q = filter.cat = filter.from = filter.to = ''; renderLibrary(); }
+  else if (a === 'imp-clear') { imp.text = ''; imp.fileName = ''; imp.fileDate = ''; imp.error = ''; renderImport(); }
+  else if (a === 'imp-run') runImport();
+  else if (a === 'edit') { editMode = true; work = null; render(); window.scrollTo(0, 0); }
+  else if (a === 'edit-cancel') { editMode = false; work = null; render(); window.scrollTo(0, 0); }
+  else if (a === 'confirm') confirmEdit();
+  else if (a === 'act-add') { collectForm(); work.open_actions.push({ text: '', owner: '', due: '', done: false }); render(); const rows = $$('#actRows textarea'); if (rows.length) rows[rows.length - 1].focus(); }
+  else if (a === 'act-del') { collectForm(); work.open_actions.splice(Number(el.dataset.i), 1); render(); autosaveDraft(); }
+  else if (a === 'delete') {
+    const m = meetings.find(x => x.id === currentId);
+    if (m && window.confirm('「' + m.title + '」を削除します。元にもどせません。よろしいですか？')) {
+      await deleteMeeting(m.id); go('library'); toast('削除しました');
+    }
+  }
+  else if (a === 'set-save') { saveSettings(); toast('設定を保存しました'); }
+  else if (a === 'set-test') testConnection();
+});
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'q') { filter.q = t.value; renderList(); }
+});
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.id === 'fcat') { filter.cat = t.value; renderList(); return; }
+  if (t.id === 'ffrom') { filter.from = t.value; renderList(); return; }
+  if (t.id === 'fto') { filter.to = t.value; renderList(); return; }
+  if (view !== 'detail') return;
+  const m = meetings.find(x => x.id === currentId);
+  if (!m) return;
+  if (editMode) { if (t.closest('#editForm')) autosaveDraft(); return; }
+  /* 閲覧モード: タイトル・日付・アクションはその場で保存 */
+  if (t.dataset.field === 'title') {
+    const v = t.value.trim();
+    if (!v) { t.value = m.title; toast('タイトルは空にできません'); return; }
+    m.title = v; await saveMeeting(m); toast('タイトルを保存しました');
+  } else if (t.dataset.field === 'meeting_date') {
+    if (!isYmd(t.value)) { t.value = m.meeting_date; toast('日付は空にできません'); return; }
+    m.meeting_date = t.value; await saveMeeting(m); toast('日付を保存しました');
+  } else if (t.dataset.act !== undefined) {
+    const act = m.open_actions[Number(t.dataset.act)];
+    if (!act) return;
+    if (t.dataset.k === 'done') { act.done = t.checked; t.closest('.act').classList.toggle('done', t.checked); }
+    else act[t.dataset.k] = t.value.trim();
+    await saveMeeting(m);
+    if (t.dataset.k !== 'done') toast('保存しました');
+  }
+});
+/* ウィンドウの外にファイルを落としてもページが切り替わらないようにする */
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+
+/* ============ 起動 ============ */
+async function init() {
+  $('#ver').textContent = APP_VERSION;
+  try {
+    categories = (await kvGet('categories')) || null;
+    if (!categories || !categories.length) { categories = clone(DEFAULT_CATEGORIES); await kvSet('categories', categories); }
+    meetings = (await dbOp('meetings', 'readonly', s => s.getAll())) || [];
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  } catch (e) {
+    $('#main').innerHTML = `<div class="msg err" role="alert">このブラウザではデータを保存できませんでした。Chrome か Edge の通常のウィンドウ（シークレット／InPrivate ではないもの）で開き直してください。</div>`;
+    return;
+  }
+  render();
+}
+init();
+</script>
+</body>
+</html>
